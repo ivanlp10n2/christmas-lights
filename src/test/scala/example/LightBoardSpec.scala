@@ -2,7 +2,7 @@ package example
 
 import example.LightBoardUtils._
 import light.LightBoard.Coordinate
-import light.{Light, LightBoard, LightOff, LightOn, LightState}
+import light.{LightBoard, LightOff, LightOn, LightState}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -35,12 +35,13 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
     }
 
     "turn on 0,0 through 999,999" should {
-      val start = (0, 0)
-      val end = (999, 999)
+      val start = Coordinate(0, 0)
+      val end = Coordinate(999, 999)
 
       "have only turned on lights" in {
         val aLightBoard = LightBoard(rows, columns)
         aLightBoard.turnOn(start, end)
+
         val founded = aLightBoard.findIn(start, end, LightOff)
         founded should
           matchPattern { case None => }
@@ -48,8 +49,8 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
     }
 
     "toggle 0,0 through 999,0" should {
-      val start = (0, 0)
-      val end = (999, 0)
+      val start = Coordinate(0, 0)
+      val end = Coordinate(999, 0)
 
       "set lights on when toggled " in {
         val aLightBoard = LightBoard(rows, columns)
@@ -91,17 +92,23 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
     }
 
     "turn off 499,499 through 500,500" should {
-      import cats.syntax.semigroup._
-      val start = (499, 499)
-      val end = (500, 500)
+      import cats.kernel.Semigroup
+      import cats.implicits._
+      implicit val combineCoordinate = new Semigroup[Coordinate] {
+        override def combine(first: Coordinate, second: Coordinate): Coordinate =
+          Coordinate(first.x + second.x, first.y + second.y)
+      }
+
+      val start = Coordinate(499, 499)
+      val end = Coordinate(500, 500)
       "turn off the middle four lights" in {
         val lightBoard = LightBoard(rows, columns)
 
-        lightBoard.turnOn((0, 0), (999, 999))
+        lightBoard.turnOn(Coordinate(0, 0), Coordinate(999, 999))
         lightBoard.turnOff(start, end)
 
         allLightsAreOff(lightBoard, start, end) shouldBe true
-        allLightsAreOff(lightBoard, start |+| (2, 2), end |+| (2, 2)) shouldBe false
+        allLightsAreOff(lightBoard, start |+| Coordinate(2, 2), end |+| Coordinate(2, 2)) shouldBe false
 
       }
     }
@@ -110,15 +117,15 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
       "knows how many lights are lit" in {
         val aLightBoard = LightBoard(rows, columns)
         aLightBoard
-          .turnOn((887, 9), (959, 629))
-          .turnOn((454, 398), (844, 448))
-          .turnOff((539, 243), (559, 965))
-          .turnOff((370, 819), (676, 868))
-          .turnOff((145, 40), (370, 997))
-          .turnOff((301, 3), (808, 453))
-          .turnOn((351, 678), (951, 908))
-          .toggle((720, 196), (897, 994))
-          .toggle((831, 394), (904, 860))
+          .turnOn(Coordinate(887, 9), Coordinate(959, 629))
+          .turnOn(Coordinate(454, 398), Coordinate(844, 448))
+          .turnOff(Coordinate(539, 243), Coordinate(559, 965))
+          .turnOff(Coordinate(370, 819), Coordinate(676, 868))
+          .turnOff(Coordinate(145, 40), Coordinate(370, 997))
+          .turnOff(Coordinate(301, 3), Coordinate(808, 453))
+          .turnOn(Coordinate(351, 678), Coordinate(951, 908))
+          .toggle(Coordinate(720, 196), Coordinate(897, 994))
+          .toggle(Coordinate(831, 394), Coordinate(904, 860))
 
         val assumptionLights = 230022
         assert(aLightBoard.count((light: LightState) => light == LightOn) == assumptionLights)
@@ -128,11 +135,11 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
     "turn on 0,0 through 0,0" should{
       "increase the total brightness by 1" in {
         val aLightBoard = LightBoard(rows, columns)
-        aLightBoard.turnOn( (0,0), (0,0))
+        aLightBoard.turnOn(Coordinate (0,0), Coordinate(0,0))
         assert(aLightBoard.totalBrightness == 1)
 
         val aLightBoard2 = LightBoard(rows, columns)
-        aLightBoard2.turnOn( (0,0), (1,1))
+        aLightBoard2.turnOn(Coordinate (0,0), Coordinate(1,1))
         assert(aLightBoard2.totalBrightness == 4)
 
         assert( (0 to 0).size == 1)
@@ -141,7 +148,7 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
     "toggle 0,0 through 999,999" should{
       "increase the total brightness by 2000000" in{
         val aLightBoard = LightBoard(rows, columns)
-        aLightBoard.toggle( (0,0), (999,999))
+        aLightBoard.toggle(Coordinate (0,0), Coordinate(999,999))
 
         assert(aLightBoard.totalBrightness == 2000000)
       }
