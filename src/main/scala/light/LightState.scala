@@ -2,32 +2,64 @@ package light
 
 import light.LightBoard.{Coordinate, Matrix, eval}
 
-sealed trait Light {
+case class Light(private var state: LightState = LightOff,
+                 private var brightness: Int = 0){
+  def turnOff = {
+    state = LightOff
+    brightness = if (brightness > 0) brightness - 1 else 0
+    this
+  }
+
+  def turnOn = {
+    state = LightOn
+    brightness = brightness + 1
+    this
+  }
+
+  def toggle = {
+    state = state match {
+        case LightOn => LightOff
+        case LightOff => LightOn
+      }
+    brightness = brightness + 2
+    this
+  }
+
+  def brightns = brightness
+
+  def stat = state
+}
+
+sealed trait LightState {
   override def equals(obj: Any): Boolean =
     this.getClass == obj.getClass
 }
 
-case class LightOn() extends Light {
+case object LightOn extends LightState {
   override def toString: String = "O"
 }
 
-case class LightOff() extends Light {
+case object LightOff extends LightState {
   override def toString: String = "X"
 }
 
 case class LightBoard(matrix: Matrix) {
-  def count(f: Light => Boolean) =
-    matrix.count{ case (_, light) => f(light) }
+  def totalBrightness: Int = matrix.foldLeft(0){
+    case (acc, (_,light)) => acc + light.brightns
+  }
+
+  def count(f: LightState => Boolean) =
+    matrix.count{ case (_, light) => f(light.stat) }
 
   def turnOff(start: Coordinate, end: Coordinate): LightBoard= {
     eval(start, end, (x, y) =>
-      matrix((x, y)) = LightOff())
+      matrix((x, y)).turnOff)
     this
   }
 
   def turnOn(start: Coordinate, end: Coordinate): LightBoard= {
     eval(start, end, (x, y) =>
-      matrix((x, y)) = LightOn())
+      matrix((x, y)).turnOn)
     this
   }
 
@@ -36,17 +68,22 @@ case class LightBoard(matrix: Matrix) {
       s"$acc | ($x,$y) -> $l"
     }
 
-  def find(light: Light): Option[Light] =
-    matrix.values.find(_ == light)
+  def find(light: LightState): Option[(Coordinate, Light)] =
+    matrix.find{ case (_, l) => l.stat == light}
 
-  def findIn(begin: Coordinate, end: Coordinate, light: Light): Option[(Coordinate, Light)] = {
+  /**
+   * 1 2 3 4
+   * 2 3 4 2
+   * 3 1 3 3 => find (0,2) (2,2) => iterator through coordinates => if found match return
+   * */
+  def findIn(begin: Coordinate, end: Coordinate, state: LightState): Option[(Coordinate, Light)] = {
     val xRange = begin._1 until end._1
     val yRange = begin._2 until end._2
     matrix.find{
       case ((x, y), l) =>
         (xRange contains x) &&
           (yRange contains y) &&
-            (l == light)
+            (l.stat == state)
     }
   }
 
@@ -56,18 +93,13 @@ case class LightBoard(matrix: Matrix) {
   }
 
   def toggle(start: Coordinate, end: Coordinate): LightBoard = {
-    def toggle(light: Light): Light =
-      light match {
-        case LightOn() => LightOff()
-        case LightOff() => LightOn()
-      }
 
-    val xRange = start._1 until end._1
-    val yRange = start._2 until end._2
+    val xRange = start._1 to end._1
+    val yRange = start._2 to end._2
 
     matrix.foreach { case ((x, y), light) =>
       if ((xRange contains x) && (yRange contains y))
-        matrix((x, y)) = toggle(light)
+        matrix((x, y)).toggle
     }
 
     this
@@ -95,13 +127,14 @@ object LightBoard {
       collection.mutable.Map.from(
         (0 until x).flatMap(xCord =>
           (0 until y).map(yCord =>
-            (xCord, yCord) -> LightOff()))
-          .toMap))
+            (xCord, yCord) -> Light()
+          ))
+        .toMap))
   }
 
   def eval[A](start: Coordinate, end: Coordinate, f: (Int, Int) => A): Unit = {
-    val xRange = start._1 until end._1
-    val yRange = start._2 until end._2
+    val xRange = start._1 to end._1
+    val yRange = start._2 to end._2
     xRange.foreach(x =>
       yRange.foreach(y =>
         f(x, y)

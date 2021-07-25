@@ -2,7 +2,7 @@ package example
 
 import example.LightBoardUtils._
 import light.LightBoard.Coordinate
-import light.{Light, LightBoard, LightOff, LightOn}
+import light.{Light, LightBoard, LightOff, LightOn, LightState}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -11,10 +11,10 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
   "A Light" when {
     "compare subclass" should {
       "differentiate if they're the same" in {
-        assert(LightOff() == LightOff())
-        assert(LightOn() == LightOn())
+        assert(LightOff == LightOff)
+        assert(LightOn == LightOn)
 
-        assert(LightOn() != LightOff())
+        assert(LightOn != LightOff)
       }
     }
   }
@@ -25,8 +25,8 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
     "instantiated" should {
       "be completely turned off" in {
         val aLightBoard = LightBoard(rows, columns)
-        aLightBoard.find(LightOn()) should matchPattern { case None => }
-        aLightBoard.find(LightOff()) should matchPattern { case Some(_) => }
+        aLightBoard.find(LightOn) should matchPattern { case None => }
+        aLightBoard.find(LightOff) should matchPattern { case Some(_) => }
       }
       "evaluates as a matrix of the same size" in {
         val aLightBoard = LightBoard(rows, columns)
@@ -41,7 +41,7 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
       "have only turned on lights" in {
         val aLightBoard = LightBoard(rows, columns)
         aLightBoard.turnOn(start, end)
-        val founded = aLightBoard.findIn(start, end, LightOff())
+        val founded = aLightBoard.findIn(start, end, LightOff)
         founded should
           matchPattern { case None => }
       }
@@ -64,7 +64,7 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
       "set lights off when toggled twice" in {
         val aLightBoard = LightBoard(rows, columns)
         //given turned off lights for the range
-        assert(aLightBoard.findIn(start, end, LightOn()) == None)
+        assert(aLightBoard.findIn(start, end, LightOn) == None)
 
         //when toggled twice
         val toggledTwice = aLightBoard
@@ -77,7 +77,7 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
       "set lights on when toggled thrice" in {
         val aLightBoard = LightBoard(1000, 1000)
         //given turned off lights for the range
-        assert(aLightBoard.findIn(start, end, LightOn()) == None)
+        assert(aLightBoard.findIn(start, end, LightOn) == None)
 
         //when toggled thrice
         val toggledTwice = aLightBoard
@@ -120,18 +120,42 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
           .toggle((720, 196), (897, 994))
           .toggle((831, 394), (904, 860))
 
-        val assumptionLights = 228698
-        assert(aLightBoard.count((light: Light) => light == LightOn()) == assumptionLights)
+        val assumptionLights = 230022
+        assert(aLightBoard.count((light: LightState) => light == LightOn) == assumptionLights)
       }
     }
+
+    "turn on 0,0 through 0,0" should{
+      "increase the total brightness by 1" in {
+        val aLightBoard = LightBoard(rows, columns)
+        aLightBoard.turnOn( (0,0), (0,0))
+        assert(aLightBoard.totalBrightness == 1)
+
+        val aLightBoard2 = LightBoard(rows, columns)
+        aLightBoard2.turnOn( (0,0), (1,1))
+        assert(aLightBoard2.totalBrightness == 4)
+
+        assert( (0 to 0).size == 1)
+      }
+    }
+    "toggle 0,0 through 999,999" should{
+      "increase the total brightness by 2000000" in{
+        val aLightBoard = LightBoard(rows, columns)
+        aLightBoard.toggle( (0,0), (999,999))
+
+        assert(aLightBoard.totalBrightness == 2000000)
+      }
+    }
+
   }
+
 
 }
 
 object LightBoardUtils {
   def allLightsAreOff(lightBoard: LightBoard, start: Coordinate, end: Coordinate): Boolean =
-    lightBoard.findIn(start, end, LightOn()) == None
+    lightBoard.findIn(start, end, LightOn) == None
 
   def allLightsAreOn(lightBoard: LightBoard, start: Coordinate, end: Coordinate): Boolean =
-    lightBoard.findIn(start, end, LightOff()) == None
+    lightBoard.findIn(start, end, LightOff) == None
 }
