@@ -1,7 +1,8 @@
 package example
 
+import example.LightBoardUtils._
 import light.LightBoard.Coordinate
-import light.{LightBoard, LightOff, LightOn}
+import light.{Light, LightBoard, LightOff, LightOn}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -33,12 +34,6 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
       }
     }
 
-    def allLightsAreOff(lightBoard: LightBoard, start: Coordinate, end: Coordinate): Boolean =
-      lightBoard.findIn(start, end, LightOn()) == None
-
-    def allLightsAreOn(lightBoard: LightBoard, start: Coordinate, end: Coordinate): Boolean =
-      lightBoard.findIn(start, end, LightOff()) == None
-
     "turn on 0,0 through 999,999" should {
       val start = (0, 0)
       val end = (999, 999)
@@ -56,7 +51,7 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
       val start = (0, 0)
       val end = (999, 0)
 
-      "set lights ON when toggled " in {
+      "set lights on when toggled " in {
         val aLightBoard = LightBoard(rows, columns)
         assert(allLightsAreOff(aLightBoard, start, end))
 
@@ -66,7 +61,6 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
         //returns turned on lights for the range
         assert(allLightsAreOn(toggledFromOff, start, end))
       }
-
       "set lights off when toggled twice" in {
         val aLightBoard = LightBoard(rows, columns)
         //given turned off lights for the range
@@ -99,18 +93,45 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
     "turn off 499,499 through 500,500" should {
       import cats.syntax.semigroup._
       val start = (499, 499)
-      val end = (500,500)
+      val end = (500, 500)
       "turn off the middle four lights" in {
         val lightBoard = LightBoard(rows, columns)
 
-        lightBoard.turnOn( (0,0), (999,999))
+        lightBoard.turnOn((0, 0), (999, 999))
         lightBoard.turnOff(start, end)
 
         allLightsAreOff(lightBoard, start, end) shouldBe true
-        allLightsAreOff(lightBoard, start |+| (2,2), end |+| (2,2)) shouldBe false
+        allLightsAreOff(lightBoard, start |+| (2, 2), end |+| (2, 2)) shouldBe false
 
       }
     }
 
+    "execute multiple commands" should{
+      "knows how many lights are lit" in {
+        val aLightBoard = LightBoard(rows, columns)
+        aLightBoard
+          .turnOn((887, 9), (959, 629))
+          .turnOn((454, 398), (844, 448))
+          .turnOff((539, 243), (559, 965))
+          .turnOff((370, 819), (676, 868))
+          .turnOff((145, 40), (370, 997))
+          .turnOff((301, 3), (808, 453))
+          .turnOn((351, 678), (951, 908))
+          .toggle((720, 196), (897, 994))
+          .toggle((831, 394), (904, 860))
+
+        val assumptionLights = 228698
+        assert(aLightBoard.count((light: Light) => light == LightOn()) == assumptionLights)
+      }
+    }
   }
+
+}
+
+object LightBoardUtils {
+  def allLightsAreOff(lightBoard: LightBoard, start: Coordinate, end: Coordinate): Boolean =
+    lightBoard.findIn(start, end, LightOn()) == None
+
+  def allLightsAreOn(lightBoard: LightBoard, start: Coordinate, end: Coordinate): Boolean =
+    lightBoard.findIn(start, end, LightOff()) == None
 }

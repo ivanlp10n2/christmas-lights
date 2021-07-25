@@ -16,13 +16,20 @@ case class LightOff() extends Light {
 }
 
 case class LightBoard(matrix: Matrix) {
-  def turnOff(start: Coordinate, end: Coordinate): Unit =
+  def count(f: Light => Boolean) =
+    matrix.count{ case (_, light) => f(light) }
+
+  def turnOff(start: Coordinate, end: Coordinate): LightBoard= {
     eval(start, end, (x, y) =>
       matrix((x, y)) = LightOff())
+    this
+  }
 
-  def turnOn(start: Coordinate, end: Coordinate): Unit =
+  def turnOn(start: Coordinate, end: Coordinate): LightBoard= {
     eval(start, end, (x, y) =>
       matrix((x, y)) = LightOn())
+    this
+  }
 
   override def toString: String =
     matrix.foldLeft("") { case (acc: String, ((x: Int, y: Int), l: Light)) =>
@@ -32,15 +39,16 @@ case class LightBoard(matrix: Matrix) {
   def find(light: Light): Option[Light] =
     matrix.values.find(_ == light)
 
-  def findIn(begin: Coordinate, end: Coordinate, light: Light): Option[(Coordinate, Light)] =
-    matrix.collect {
-      case ((x, y), l) if
-        (begin._1 until end._1 contains x) &&
-          (begin._2 until end._2 contains y) &&
-          (l == light) =>
-        ((x,y), l)
+  def findIn(begin: Coordinate, end: Coordinate, light: Light): Option[(Coordinate, Light)] = {
+    val xRange = begin._1 until end._1
+    val yRange = begin._2 until end._2
+    matrix.find{
+      case ((x, y), l) =>
+        (xRange contains x) &&
+          (yRange contains y) &&
+            (l == light)
     }
-      .headOption
+  }
 
   def size: (Int, Int) = {
     val (maxX, maxY) = matrix.keySet.max
@@ -62,7 +70,7 @@ case class LightBoard(matrix: Matrix) {
         matrix((x, y)) = toggle(light)
     }
 
-    LightBoard(this.matrix)
+    this
   }
 
 }
