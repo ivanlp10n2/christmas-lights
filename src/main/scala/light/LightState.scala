@@ -93,15 +93,10 @@ case class LightBoard(matrix: Matrix) {
   }
 
   def toggle(start: Coordinate, end: Coordinate): LightBoard = {
-
-    val xRange = start._1 to end._1
-    val yRange = start._2 to end._2
-
-    matrix.foreach { case ((x, y), light) =>
-      if ((xRange contains x) && (yRange contains y))
-        matrix((x, y)).toggle
-    }
-
+    for {
+      x <- start._1 to end._1
+      y <- start._2 to end._2
+    } matrix(x, y).toggle
     this
   }
 
@@ -125,10 +120,10 @@ object LightBoard {
   def apply(x: Int, y: Int): LightBoard = {
     LightBoard(
       collection.mutable.Map.from(
-        (0 until x).flatMap(xCord =>
-          (0 until y).map(yCord =>
-            (xCord, yCord) -> Light()
-          ))
+        (for {
+          x <- 0 until x
+          y <- 0 until y
+        } yield (x,y) -> Light())
         .toMap))
   }
 
