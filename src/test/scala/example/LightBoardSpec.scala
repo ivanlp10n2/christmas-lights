@@ -114,6 +114,17 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
     }
 
     "execute multiple commands" should{
+      "998,996 lights on after instructions" in{
+        val aLightBoard = LightBoard(rows, columns)
+
+        aLightBoard
+          .turnOn(Coordinate (0,0), Coordinate(999,999))
+          .toggle(Coordinate (0,0), Coordinate(999,0))
+          .turnOff(Coordinate (499,499), Coordinate(500,500))
+
+        val expectedBrightness = (rows * columns) + 2 * (rows * 1) - (2 * 2)
+        assert(aLightBoard.totalBrightness == expectedBrightness)
+      }
       "knows how many lights are lit" in {
         val aLightBoard = LightBoard(rows, columns)
         aLightBoard
@@ -129,6 +140,7 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
 
         val assumptionLights = 230022
         assert(aLightBoard.count((light: LightState) => light == LightOn) == assumptionLights)
+        assert(aLightBoard.totalBrightness == 539560)
       }
     }
 
@@ -151,6 +163,23 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
         aLightBoard.toggle(Coordinate (0,0), Coordinate(999,999))
 
         assert(aLightBoard.totalBrightness == 2000000)
+      }
+    }
+
+    "toggle 0,0 through 1,1 and then turn off" should{
+      "returns 4" in{
+        val aLightBoard = LightBoard(3,3)
+        val start = Coordinate(0, 0)
+        val end = Coordinate(1, 1)
+
+        aLightBoard
+          .toggle( start, end)
+          .turnOff( start, end)
+
+        assert(aLightBoard.totalBrightness == 4)
+        assert(aLightBoard.toggle(start, end).totalBrightness == 12)
+        assert(aLightBoard.turnOff(start, end).totalBrightness == 8)
+        assert(aLightBoard.turnOn(start, end).totalBrightness == 12)
       }
     }
 

@@ -78,7 +78,8 @@ case class LightBoard(matrix: Matrix) {
   }
 
   def toggle(start: Coordinate, end: Coordinate): LightBoard = {
-    eval(start, end, (x,y) => matrix(Coordinate(x, y)).toggle)
+    eval(start, end, (x,y) =>
+      matrix(Coordinate(x, y)).toggle)
     this
   }
   def find(light: LightState): Option[(Coordinate, Light)] =
@@ -106,6 +107,10 @@ case class LightBoard(matrix: Matrix) {
 
   def size: (Int, Int) = {
     implicit object ord extends Ordering[Coordinate] {
+      /** Ordered by Y and then X:
+       * if cord.Y > anotherCord.Y => return cord
+       * else => evaluates X
+       * */
       override def compare(cord: Coordinate, anotherCord: Coordinate): Int =
         ( cord.x compare anotherCord.x, cord.y compare anotherCord.y ) match {
           case (_, yComparison) if yComparison != 0 => yComparison
