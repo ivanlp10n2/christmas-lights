@@ -1,0 +1,6 @@
+.sbt
+.idea
+.bsp
+.intellij
+target/
+project/
