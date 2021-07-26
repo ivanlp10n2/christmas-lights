@@ -1,3 +1,5 @@
+https://kata-log.rocks/christmas-lights-kata
+
 Credits
 
 Inspired by Advent of Code
