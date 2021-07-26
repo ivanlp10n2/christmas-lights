@@ -114,7 +114,7 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
     }
 
     "execute multiple commands" should{
-      "998,996 lights on after instructions" in{
+      "return 998,996 lights on after instructions" in{
         val aLightBoard = LightBoard(rows, columns)
 
         aLightBoard
