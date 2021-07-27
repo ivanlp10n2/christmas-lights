@@ -1,5 +1,0 @@
-package light
-
-class LightApplication {
-
-}
