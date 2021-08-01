@@ -9,7 +9,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "christmas-show",
     libraryDependencies += scalaTest % Test,
-libraryDependencies += "org.typelevel" %% "cats-core" % "2.3.0"
+    libraryDependencies += "org.typelevel" %% "cats-core" % "2.3.0"
   )
 
 // See https://www.scala-sbt.org/1.x/docs/Using-Sonatype.html for instructions on how to publish to Sonatype.

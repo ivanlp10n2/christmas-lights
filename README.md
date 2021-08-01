@@ -1,3 +1,7 @@
+Usage:
+``` sbt test ```
+To do: user interface
+
 https://kata-log.rocks/christmas-lights-kata
 
 Credits
