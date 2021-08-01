@@ -14,22 +14,22 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
   "A (1000x1000) light board" when {
     val rows = 1000
     val columns = 1000
+    val defaultLightBoard = LightBoard(rows, columns)
     "instantiated" should {
       "be completely turned off" in {
-        val init = LightBoard(rows, columns)
+        find(LightOn)
+          .runA(defaultLightBoard)
+          .value should matchPattern { case None => }
 
-        val exec = find(LightOn).runA(init)
-
-        exec.value should {
-          matchPattern { case None => }
-        }
-
-        val exec2 = find(LightOff).runA(init)
-        exec2.value should matchPattern { case Some(_) => }
+        find(LightOff)
+          .runA(defaultLightBoard)
+          .value should matchPattern { case Some(_) => }
       }
       "evaluates as a matrix of the same size" in {
-        val aLightBoard = LightBoard(rows, columns)
-        (rows, columns) shouldBe LightBoard.size.runA(aLightBoard).value
+        LightBoard
+          .size
+          .runA(defaultLightBoard)
+          .value shouldBe (rows, columns)
       }
     }
     "turn on 0,0 through 999,999 " should {
@@ -37,14 +37,12 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
       val end = Coordinate(999, 999)
 
       "turn on (or leave on) every light" in {
-        val init = LightBoard(rows, columns)
-
         val ops = for {
           _ <- turnOn(start, end)
           lightOff <- findIn(start, end, LightOff)
         } yield lightOff
 
-        val exec = ops.runA(init).value
+        val exec = ops.runA(defaultLightBoard).value
 
         exec should {
           matchPattern { case None => }
@@ -56,45 +54,39 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
       val end = Coordinate(999, 0)
 
       "if toggled once, return the first line of 1000 lights as LightOn" in {
-        val init = LightBoard(rows, columns)
-
         val ops = for {
-        _       <- toggle(start, end)
-        founded <- findIn(start, end, LightOff)
-        } yield founded
+          _       <- toggle(start, end)
+          lightOff <- findIn(start, end, LightOff)
+        } yield lightOff
 
-        val exec = ops.runA(init).value
+        val exec = ops.runA(defaultLightBoard).value
 
         exec should {
           matchPattern { case None => }
         }
       }
       "if toggled twice, return the first line of 1000 lights as LightOff" in {
-        val init = LightBoard(rows, columns)
-
         val ops = for {
           _       <- toggle(start, end)
           _       <- toggle(start, end)
-          founded <- findIn(start, end, LightOn)
-        } yield founded
+          anyLightOn <- findIn(start, end, LightOn)
+        } yield anyLightOn
 
-        val exec = ops.runA(init).value
+        val exec = ops.runA(defaultLightBoard).value
 
         exec should matchPattern {
           case None =>
         }
       }
       "if toggled twice, return the first line of 1000 lights as LightOn" in {
-        val init = LightBoard(rows, columns)
-
         val ops = for {
           _ <- toggle(start, end)
           _ <- toggle(start, end)
           _ <- toggle(start, end)
-          founded <- findIn(start, end, LightOff)
-        } yield founded
+          anyLightOff <- findIn(start, end, LightOff)
+        } yield anyLightOff
 
-        val exec = ops.runA(init).value
+        val exec = ops.runA(defaultLightBoard).value
 
         exec should matchPattern {
           case None =>
@@ -112,8 +104,6 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
       val start = Coordinate(499, 499)
       val end = Coordinate(500, 500)
       "turn off the middle four lights" in {
-        val init = LightBoard(rows, columns)
-
         def turnOnAllLights(rows: Int, columns: Int): State[LightBoard, Unit] = {
           val start = Coordinate(0, 0)
           val end = Coordinate(rows - 1, columns - 1)
@@ -127,15 +117,13 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
           lightOff <- findIn(start |+| Coordinate(2, 2), end |+| Coordinate(2, 2), LightOn)
         } yield (lightOn, lightOff)
 
-        ops.runA(init).value should matchPattern {
+        ops.runA(defaultLightBoard).value should matchPattern {
           case (None, Some(_)) =>
         }
       }
     }
     "execute multiple commands" should {
       "return 998,996 lights on after instructions" in {
-        val init = LightBoard(rows, columns)
-
         val exec = for {
           _ <- turnOn((0, 0) toCord, (999, 999) toCord)
           _ <- toggle((0, 0) toCord, (999, 0) toCord)
@@ -147,10 +135,9 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
         val toggleBrightness = rows * 2
         val turnOffBrightness = -2 * 2
         val expectedBrightness = turnOnBrightness + toggleBrightness + turnOffBrightness
-        assert(exec.runA(init).value == expectedBrightness)
+        assert(exec.runA(defaultLightBoard).value == expectedBrightness)
       }
       "knows how many lights are lit" in {
-        val init = LightBoard(rows, columns)
         val brightnessExpected: Int = 539560
         val lightsOnExpected: Int = 230022
         val exec = (for {
@@ -166,7 +153,7 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
           brightness <- totalBrightness
           lightsOn <- count((light: LightState) => light == LightOn)
         } yield (brightness, lightsOn))
-          .runA(init)
+          .runA(defaultLightBoard)
           .value
 
         exec should matchPattern {
@@ -180,13 +167,12 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
         import LightBoardUtils.CoordinateBuilder
         import scala.language.postfixOps
 
-        val init = LightBoard(rows, columns)
         val ops = for {
           _ <- turnOn((0, 0) toCord, (0, 0) toCord)
           brightness <- totalBrightness
         } yield brightness
 
-        assert(ops.runA(init).value == 1)
+        assert(ops.runA(defaultLightBoard).value == 1)
 
         val tt = (
           for {
@@ -194,7 +180,7 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
             brightness2 <- totalBrightness
             s <- LightBoard.size
           } yield (brightness2, s))
-          .runA(init)
+          .runA(defaultLightBoard)
           .value
         assert(tt._1 == 4)
         assert(tt._2 == (1000, 1000))
@@ -202,12 +188,11 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
     }
     "toggle 0,0 through 999,999" should {
       "increase the total brightness by 2000000" in {
-        val init = LightBoard(rows, columns)
         (for {
           _ <- toggle((0, 0) toCord, (999, 999) toCord)
           brightness <- totalBrightness
         } yield brightness)
-          .runA(init)
+          .runA(defaultLightBoard)
           .value shouldBe 2000000
 
         //            toggle(Coordinate (0,0), Coordinate(999,999))
