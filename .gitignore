@@ -3,4 +3,4 @@
 .bsp
 .intellij
 target/
-project/
+project/target
