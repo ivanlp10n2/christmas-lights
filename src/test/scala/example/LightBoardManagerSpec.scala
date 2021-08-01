@@ -70,8 +70,8 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
           val init = LightBoard(rows, columns)
 
           val ops = for {
-            _         <- toggle(start, end)
-            founded   <- findIn(start, end, LightOff)
+            _ <- toggle(start, end)
+            founded <- findIn(start, end, LightOff)
           } yield founded
 
           val exec = ops.runA(init).value
@@ -128,30 +128,30 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
         "turn off the middle four lights" in {
           val init = LightBoard(rows, columns)
 
-          def turnOnAllLights(rows: Int, columns: Int): State[LightBoard, Unit] ={
+          def turnOnAllLights(rows: Int, columns: Int): State[LightBoard, Unit] = {
             val start = Coordinate(0, 0)
-            val end = Coordinate(rows, columns)
+            val end = Coordinate(rows - 1, columns - 1)
             turnOn(start, end)
           }
 
           val ops = for {
-            _         <- turnOnAllLights(rows, columns)
-            _         <- turnOff(start, end)
-            lightOn   <- findIn(start, end, LightOn)
-            lightOff  <- findIn( start |+| Coordinate(2, 2), end |+| Coordinate(2, 2), LightOn)
+            _ <- turnOnAllLights(rows, columns)
+            _ <- turnOff(start, end)
+            lightOn <- findIn(start, end, LightOn)
+            lightOff <- findIn(start |+| Coordinate(2, 2), end |+| Coordinate(2, 2), LightOn)
           } yield (lightOn, lightOff)
 
-          ops.runA(init).value should matchPattern{
+          ops.runA(init).value should matchPattern {
             case (None, Some(_)) =>
           }
         }
       }
+      import LightBoardUtils.CoordinateBuilder
+      import scala.language.postfixOps
 
       "execute multiple commands" should {
         "return 998,996 lights on after instructions" in {
           val init = LightBoard(rows, columns)
-          import LightBoardUtils.CoordinateBuilder
-          import scala.language.postfixOps
 
           val exec = for {
             _ <- turnOn((0, 0) toCord, (999, 999) toCord)
@@ -160,85 +160,115 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
             brightness <- totalBrightness
           } yield brightness
 
-          val realExpectedResult = 998996
-          val expectedBrightness = (rows * columns) + 2 * (rows * 1) - (2 * 2)
-          assert(exec.runA(init).value == realExpectedResult)
+          val turnOnBrightness = rows * columns
+          val toggleBrightness = rows * 2
+          val turnOffBrightness = -2 * 2
+          val expectedBrightness = turnOnBrightness + toggleBrightness + turnOffBrightness
+          assert(exec.runA(init).value == expectedBrightness)
+        }
+        "knows how many lights are lit" in {
+          val init = LightBoard(rows, columns)
+          val brightnessExpected: Int = 539560
+          val lightsOnExpected: Int = 230022
+          val exec = (for {
+            _ <- turnOn(Coordinate(887, 9), Coordinate(959, 629))
+            _ <- turnOn(Coordinate(454, 398), Coordinate(844, 448))
+            _ <- turnOff(Coordinate(539, 243), Coordinate(559, 965))
+            _ <- turnOff(Coordinate(370, 819), Coordinate(676, 868))
+            _ <- turnOff(Coordinate(145, 40), Coordinate(370, 997))
+            _ <- turnOff(Coordinate(301, 3), Coordinate(808, 453))
+            _ <- turnOn(Coordinate(351, 678), Coordinate(951, 908))
+            _ <- toggle(Coordinate(720, 196), Coordinate(897, 994))
+            _ <- toggle(Coordinate(831, 394), Coordinate(904, 860))
+            brightness <- totalBrightness
+            lightsOn <- count((light: LightState) => light == LightOn)
+          } yield (brightness, lightsOn))
+            .runA(init)
+            .value
+
+          exec should matchPattern {
+            case (brightness: Int, lightsOn: Int)
+              if (brightness == brightnessExpected) && (lightsOn == lightsOnExpected) =>
+          }
         }
       }
-//                  "knows how many lights are lit" in {
-//                    val aLightBoard = LightBoard(rows, columns)
-//                    aLightBoard
-//                      .turnOn(Coordinate(887, 9), Coordinate(959, 629))
-//                      .turnOn(Coordinate(454, 398), Coordinate(844, 448))
-//                      .turnOff(Coordinate(539, 243), Coordinate(559, 965))
-//                      .turnOff(Coordinate(370, 819), Coordinate(676, 868))
-//                      .turnOff(Coordinate(145, 40), Coordinate(370, 997))
-//                      .turnOff(Coordinate(301, 3), Coordinate(808, 453))
-//                      .turnOn(Coordinate(351, 678), Coordinate(951, 908))
-//                      .toggle(Coordinate(720, 196), Coordinate(897, 994))
-//                      .toggle(Coordinate(831, 394), Coordinate(904, 860))
-//
-//                    val assumptionLights = 230022
-//                    assert(aLightBoard.count((light: LightState) => light == LightOn) == assumptionLights)
-//                    assert(aLightBoard.totalBrightness == 539560)
-//                  }
-                }
 
-//                "test" in {
-//                    val s: State[LightBoard, Record] = for {
-//                      _ <- updateLightBoard((Coordinate(0,0), Light()))
-//                      ma <- updateLightBoard((Coordinate(0,1), Light(LightOn, 1)))
-//                    } yield ma
-//
-//                  val a = s.run(LightBoard(3,3).matrix).value
-//                  print(a._1)
-//                }
+    }
 
-//                "turn on 0,0 through 0,0" should{
-//                  "increase the total brightness by 1" in {
-//                    val aLightBoard = LightBoard(rows, columns)
-//                    aLightBoard.turnOn(Coordinate (0,0), Coordinate(0,0))
-//                    assert(aLightBoard.totalBrightness == 1)
-//
-//                    val aLightBoard2 = LightBoard(rows, columns)
-//                    aLightBoard2.turnOn(Coordinate (0,0), Coordinate(1,1))
-//                    assert(aLightBoard2.totalBrightness == 4)
-//
-//                    assert( (0 to 0).size == 1)
-//                  }
-//                }
-//                "toggle 0,0 through 999,999" should{
-//                  "increase the total brightness by 2000000" in{
-//                    val aLightBoard = LightBoard(rows, columns)
-//                    aLightBoard.toggle(Coordinate (0,0), Coordinate(999,999))
-//
-//                    assert(aLightBoard.totalBrightness == 2000000)
-//                  }
-//                }
+    import LightBoardUtils.CoordinateBuilder
+    import scala.language.postfixOps
+    "turn on 0,0 through 0,0" should {
+      "increase the total brightness by 1" in {
+        import LightBoardUtils.CoordinateBuilder
+        import scala.language.postfixOps
 
-//                "toggle 0,0 through 1,1 and then turn off" should{
-//                  "returns 4" in{
-//                    val aLightBoard = LightBoard(3,3)
-//                    val start = Coordinate(0, 0)
-//                    val end = Coordinate(1, 1)
-//
-//                    aLightBoard
-//                      .toggle( start, end)
-//                      .turnOff( start, end)
-//
-//                    assert(aLightBoard.totalBrightness == 4)
-//                    assert(aLightBoard.toggle(start, end).totalBrightness == 12)
-//                    assert(aLightBoard.turnOff(start, end).totalBrightness == 8)
-//                    assert(aLightBoard.turnOn(start, end).totalBrightness == 12)
-//                  }
-//    }
+        val init = LightBoard(rows, columns)
+        val ops = for {
+          _ <- turnOn((0, 0) toCord, (0, 0) toCord)
+          brightness <- totalBrightness
+        } yield brightness
 
+        assert(ops.runA(init).value == 1)
+
+        val tt = (
+          for {
+            _ <- turnOn((0, 0) toCord, (1, 1) toCord)
+            brightness2 <- totalBrightness
+            s <- LightBoard.size
+          } yield (brightness2, s))
+          .runA(init)
+          .value
+        assert(tt._1 == 4)
+        assert(tt._2 == (1000, 1000))
+      }
+    }
+    "toggle 0,0 through 999,999" should {
+      "increase the total brightness by 2000000" in {
+        val init = LightBoard(rows, columns)
+        (for {
+          _ <- toggle((0, 0) toCord, (999, 999) toCord)
+          brightness <- totalBrightness
+        } yield brightness)
+          .runA(init)
+          .value shouldBe 2000000
+
+        //            toggle(Coordinate (0,0), Coordinate(999,999))
+        //              .flatMap(a => totalBrightness.flatMap( brightness => brightness)
+        //              .runA(init)
+        //              .value
+
+      }
+    }
+    "toggle 0,0 through 1,1 and then turn off" should {
+      "returns 4" in {
+        val init = LightBoard(3, 3)
+        val start = Coordinate(0, 0)
+        val end = Coordinate(1, 1)
+
+        (for {
+          _ <- toggle(start, end)
+          _ <- turnOff(start, end)
+          brightness <- totalBrightness //4
+          _ <- toggle(start, end)
+          brightness2 <- totalBrightness //12
+          _ <- turnOff(start, end)
+          brightness3 <- totalBrightness //8
+          _ <- turnOn(start,end)
+          brightness4 <- totalBrightness //12
+        } yield (brightness, brightness2, brightness3, brightness4))
+        .runA(init).value should matchPattern {
+          case (4,12,8,12) =>
+        }
+      }
+    }
   }
 }
 
 object LightBoardUtils {
+
   import light.LightBoard.Coordinate
-  implicit class CoordinateBuilder(tuple: (Int, Int)){
+
+  implicit class CoordinateBuilder(tuple: (Int, Int)) {
     def toCord: Coordinate = Coordinate(tuple._1, tuple._2)
   }
 }

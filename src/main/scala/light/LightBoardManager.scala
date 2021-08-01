@@ -35,12 +35,8 @@ sealed trait WriteOps extends MatrixNavigationUtils {
                   end: Coordinate,
                   operation: Operation)
   : State[LightBoard, Unit] =
-    State.modify { previousLightBoard: LightBoard =>
-      buildCommands(start, end, operation)
-        .foldLeft(previousLightBoard) {
-          (currentLightBoard, command) =>
-            updateLightBoard(currentLightBoard, command)
-        }
+    State.modify { buildCommands(start, end, operation)
+        .foldLeft(_) (updateLightBoard)
     }
 
   def updateLightBoard(lightBoard: LightBoard, command: Command): LightBoard =
@@ -119,8 +115,8 @@ trait MatrixNavigationUtils {
   def traverseCoordinates(start: Coordinate, end: Coordinate): LazyList[Coordinate] = {
     val indexOffset = 1
     for {
-      x <- LazyList.range(start.x, end.x)
-      y <- LazyList.range(start.y, end.y)
+      x <- LazyList.range(start.x, end.x + indexOffset)
+      y <- LazyList.range(start.y, end.y + indexOffset)
     } yield Coordinate(x,y)
   }
 }
