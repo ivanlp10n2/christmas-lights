@@ -218,7 +218,7 @@ class LightBoardSpec extends AnyWordSpec with Matchers {
       }
     }
     "toggle 0,0 through 1,1 and then turn off" should {
-      "returns 4" in {
+      "increase the total brightness by 4" in {
         val init = LightBoard(3, 3)
         val start = Coordinate(0, 0)
         val end = Coordinate(1, 1)
