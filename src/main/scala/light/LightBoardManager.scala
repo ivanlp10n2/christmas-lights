@@ -3,7 +3,7 @@ package light
 import cats.data.State
 import light.LightBoard.Coordinate
 
-case class LightBoard(matrix: Map[Coordinate, Light])
+final case class LightBoard(matrix: Map[Coordinate, Light])
 
 object LightBoard extends WriteOps with ReadOps{
   case class Coordinate(x: Int, y: Int)
@@ -33,13 +33,19 @@ sealed trait WriteOps extends MatrixNavigationUtils {
 
   def modifyState(start: Coordinate,
                   end: Coordinate,
-                  operation: Operation)
-  : State[LightBoard, Unit] =
+                  operation: Operation) : State[LightBoard, Unit] =
     State.modify { buildCommands(start, end, operation)
         .foldLeft(_) (updateLightBoard)
     }
 
-  def updateLightBoard(lightBoard: LightBoard, command: Command): LightBoard =
+  private def buildCommands(start: Coordinate,
+                            end: Coordinate,
+                            operation: Operation) : LazyList[Command] = {
+    traverseCoordinates(start, end)
+      .map(Command(_, operation))
+  }
+
+  private def updateLightBoard(lightBoard: LightBoard, command: Command): LightBoard =
     lightBoard.copy(matrix = lightBoard.matrix +
       (command.coordinate -> updateLight(lightBoard, command))
     )
@@ -50,14 +56,6 @@ sealed trait WriteOps extends MatrixNavigationUtils {
       case (light, TurnOff) => light.turnOff
       case (light, Toggle) => light.toggle
     }
-
-  private def buildCommands(start: Coordinate,
-                            end: Coordinate,
-                            operation: Operation)
-  : LazyList[Command] = {
-    traverseCoordinates(start, end)
-      .map(Command(_, operation))
-  }
 }
 
 sealed trait ReadOps extends MatrixNavigationUtils {
